@@ -1,5 +1,4 @@
-package src;
-
+package src.model;
 
 import src.architecture.IgnoreField;
 

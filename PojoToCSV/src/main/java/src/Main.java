@@ -1,6 +1,6 @@
 package src;
 
-
+import src.model.ExampleClass;
 import src.service.ObjectWriter;
 import src.service.impl.CsvWriterImpl;
 

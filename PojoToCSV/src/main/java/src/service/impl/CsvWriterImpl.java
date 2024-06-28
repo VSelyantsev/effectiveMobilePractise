@@ -2,6 +2,7 @@ package src.service.impl;
 
 import src.architecture.IgnoreField;
 import src.exceptions.AccessException;
+import src.exceptions.ClassFormatException;
 import src.exceptions.NullOrEmptyListException;
 import src.service.ObjectWriter;
 
@@ -27,6 +28,11 @@ public class CsvWriterImpl<T> implements ObjectWriter<T> {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
             Class<?> clazz = businessObjects.get(0).getClass();
 
+            if (isAllFieldsAnnotated(clazz)) {
+                logger.log(Level.INFO, "Error while trying to check class fields.");
+                throw new ClassFormatException("All fields are Annotated");
+            }
+
             Field[] fields = clazz.getDeclaredFields();
 
             for (T businessObject : businessObjects) {
@@ -47,5 +53,18 @@ public class CsvWriterImpl<T> implements ObjectWriter<T> {
             logger.log(Level.INFO, "Got error while trying convert to csv");
             throw new AccessException(e.getMessage());
         }
+    }
+
+    private boolean isAllFieldsAnnotated(Class<?> clazz) {
+        int counter = 0;
+        Field[] fields = clazz.getDeclaredFields();
+
+        for (Field field : fields) {
+            if (field.isAnnotationPresent(IgnoreField.class)) {
+                counter++;
+            }
+        }
+
+        return counter == fields.length;
     }
 }
