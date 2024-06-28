@@ -1,7 +1,7 @@
 package src;
 
 
-import src.service.CsvWriter;
+import src.service.ObjectWriter;
 import src.service.impl.CsvWriterImpl;
 
 import java.util.ArrayList;
@@ -16,9 +16,7 @@ public class Main {
         exampleClasses.add(exampleClass);
         exampleClasses.add(exampleClass1);
 
-        CsvWriter<ExampleClass> writer = new CsvWriterImpl<>();
+        ObjectWriter<ExampleClass> writer = new CsvWriterImpl<>();
         writer.writeToFile(exampleClasses, "output.csv");
-
-
     }
 }
