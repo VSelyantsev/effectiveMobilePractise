@@ -1,4 +1,8 @@
+import exception.ConnectionException;
+import exception.ExecuteException;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.Collection;
 import java.util.Map;
@@ -19,12 +23,20 @@ public class RedisMap implements Map<String, String> {
 
     @Override
     public boolean isEmpty() {
-        return false;
+        try {
+            return jedis.dbSize() == 0;
+        } catch (JedisException e) {
+            throw new ExecuteException(e.getMessage(), e.getCause());
+        }
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return false;
+        try {
+            return jedis.exists((String) key);
+        } catch (JedisException e) {
+            throw new ExecuteException(e.getMessage(), e.getCause());
+        }
     }
 
     @Override
@@ -34,13 +46,24 @@ public class RedisMap implements Map<String, String> {
 
     @Override
     public String get(Object key) {
-        return jedis.get(key.toString());
+        try {
+            return jedis.get(key.toString());
+        } catch (JedisConnectionException e) {
+            throw new ConnectionException(e.getMessage(), e.getCause());
+        } catch (JedisException e) {
+            throw new ExecuteException(e.getMessage(), e.getCause());
+        }
     }
 
     @Override
     public String put(String key, String value) {
-        jedis.set(key, value);
-        return value;
+        try {
+            return jedis.setGet(key, value);
+        } catch (JedisConnectionException e) {
+            throw new ConnectionException(e.getMessage(), e.getCause());
+        } catch (JedisException e) {
+            throw new ExecuteException(e.getMessage(), e.getCause());
+        }
     }
 
     @Override
@@ -55,7 +78,11 @@ public class RedisMap implements Map<String, String> {
 
     @Override
     public void clear() {
-
+        try {
+            jedis.flushDB();
+        } catch (JedisException e) {
+            throw new ExecuteException(e.getMessage(), e.getCause());
+        }
     }
 
     @Override
