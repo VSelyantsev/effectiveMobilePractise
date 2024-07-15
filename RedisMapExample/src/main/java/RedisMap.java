@@ -22,18 +22,22 @@ public class RedisMap implements Map<String, String> {
     }
 
     @Override
-    public boolean isEmpty() {
+    public boolean isEmpty() throws ConnectionException, ExecuteException {
         try {
             return jedis.dbSize() == 0;
+        } catch (JedisConnectionException e) {
+            throw new ConnectionException(e.getMessage(), e.getCause());
         } catch (JedisException e) {
             throw new ExecuteException(e.getMessage(), e.getCause());
         }
     }
 
     @Override
-    public boolean containsKey(Object key) {
+    public boolean containsKey(Object key) throws ConnectionException, ExecuteException {
         try {
             return jedis.exists((String) key);
+        } catch (JedisConnectionException e) {
+            throw new ConnectionException(e.getMessage(), e.getCause());
         } catch (JedisException e) {
             throw new ExecuteException(e.getMessage(), e.getCause());
         }
@@ -45,7 +49,7 @@ public class RedisMap implements Map<String, String> {
     }
 
     @Override
-    public String get(Object key) {
+    public String get(Object key) throws ConnectionException, ExecuteException {
         try {
             return jedis.get(key.toString());
         } catch (JedisConnectionException e) {
@@ -56,7 +60,7 @@ public class RedisMap implements Map<String, String> {
     }
 
     @Override
-    public String put(String key, String value) {
+    public String put(String key, String value) throws ConnectionException, ExecuteException {
         try {
             return jedis.setGet(key, value);
         } catch (JedisConnectionException e) {
@@ -80,6 +84,8 @@ public class RedisMap implements Map<String, String> {
     public void clear() {
         try {
             jedis.flushDB();
+        } catch (JedisConnectionException e) {
+            throw new ConnectionException(e.getMessage(), e.getCause());
         } catch (JedisException e) {
             throw new ExecuteException(e.getMessage(), e.getCause());
         }
