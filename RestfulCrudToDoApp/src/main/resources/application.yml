@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: RestfulCrudToDoApp
+
+  liquibase:
+    change-log: db/changelog/changelog-master.yml
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/crud_app
+    username: postgres
+    password: rootroot
+    driver-class-name: org.postgresql.Driver
