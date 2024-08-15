@@ -28,6 +28,11 @@ public class TaskController implements TaskApi {
     }
 
     @Override
+    public Flux<TaskResponse> findAll(int page, int pageSize) {
+        return taskService.findAll(page, pageSize);
+    }
+
+    @Override
     public Flux<TaskResponse> findAllTasksByUserId(UUID userId) {
         return taskService.findAllTasksByUserId(userId);
     }
@@ -38,7 +43,7 @@ public class TaskController implements TaskApi {
     }
 
     @Override
-    public Mono<Void> deleteUsersTaskById(UUID userId) {
-        return taskService.deleteUsersTaskById(userId);
+    public Mono<Void> deleteTaskByTaskId(UUID taskId) {
+        return taskService.deleteTaskById(taskId);
     }
 }

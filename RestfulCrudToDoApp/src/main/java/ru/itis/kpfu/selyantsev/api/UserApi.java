@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
+@Validated
 @Tag(name = "User", description = "Api for performing interaction with User entity")
 @RequestMapping(value = "/api/v1/users")
 public interface UserApi {
@@ -41,7 +44,7 @@ public interface UserApi {
             produces = APPLICATION_JSON_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Mono<UUID> createUser(@RequestBody UserRequest userRequest);
+    Mono<UUID> createUser(@Valid @RequestBody UserRequest userRequest);
 
     @Operation(summary = "Find User by userId")
     @ApiResponses(value = {
@@ -83,7 +86,10 @@ public interface UserApi {
             produces = APPLICATION_JSON_VALUE
     )
     @ResponseStatus(HttpStatus.OK)
-    Flux<UserResponse> findAll();
+    Flux<UserResponse> findAll(
+            @RequestParam int page,
+            @RequestParam int pageSize
+    );
 
     @Operation(summary = "Update user by userId")
     @ApiResponses(value = {
@@ -106,7 +112,7 @@ public interface UserApi {
             value = "/{userId}"
     )
     @ResponseStatus(HttpStatus.OK)
-    Mono<UserResponse> updateUserById(@PathVariable UUID userId, @RequestBody UserRequest userRequest);
+    Mono<UserResponse> updateUserById(@PathVariable UUID userId, @Valid @RequestBody UserRequest userRequest);
 
     @Operation(summary = "Delete user by userId")
     @ApiResponses(value = {

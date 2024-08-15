@@ -28,8 +28,8 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public Flux<UserResponse> findAll() {
-        return userService.findAll();
+    public Flux<UserResponse> findAll(int page, int pageSize) {
+        return userService.findAll(page, pageSize);
     }
 
     @Override

@@ -10,7 +10,8 @@ import java.util.UUID;
 public interface TaskService {
     Mono<UUID> create(UUID userId, TaskRequest taskRequest);
     Mono<TaskResponse> findTaskById(UUID taskId);
+    Flux<TaskResponse> findAll(int page, int pageSize);
     Flux<TaskResponse> findAllTasksByUserId(UUID userId);
     Mono<TaskResponse> updateTaskCompletionStatus(UUID userId, UUID taskId, boolean isComplete);
-    Mono<Void> deleteUsersTaskById(UUID userId);
+    Mono<Void> deleteTaskById(UUID taskId);
 }
