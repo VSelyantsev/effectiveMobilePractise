@@ -1,6 +1,5 @@
 package ru.itis.kpfu.selyantsev.configuration;
 
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -9,7 +8,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @ActiveProfiles("test")
 @TestPropertySource(locations = "classpath:application-test.yml")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class ContainerConfiguration {
 
     private static final String DOCKER_IMAGE = "postgres:11.1";

@@ -3,7 +3,6 @@ package ru.itis.kpfu.selyantsev.controller;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebFlux;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,11 +16,10 @@ import ru.itis.kpfu.selyantsev.configuration.ContainerConfiguration;
 import ru.itis.kpfu.selyantsev.dto.request.TaskRequest;
 import ru.itis.kpfu.selyantsev.dto.request.UserRequest;
 import ru.itis.kpfu.selyantsev.dto.response.TaskResponse;
-import ru.itis.kpfu.selyantsev.exceptions.TaskNotFoundException;
 import ru.itis.kpfu.selyantsev.model.Task;
 import ru.itis.kpfu.selyantsev.model.User;
+import ru.itis.kpfu.selyantsev.repository.CrudRepository;
 import ru.itis.kpfu.selyantsev.repository.TaskRepository;
-import ru.itis.kpfu.selyantsev.repository.UserRepository;
 
 import java.util.UUID;
 
@@ -31,7 +29,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @TestPropertySource(locations = "classpath:application-test.yml")
-@AutoConfigureWebFlux
 public class TaskControllerTest {
 
     @Container
@@ -44,10 +41,12 @@ public class TaskControllerTest {
     private TaskRepository taskRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private CrudRepository<User, UUID> userRepository;
 
     @Autowired
     private WebTestClient webTestClient;
+
+    private static final String API_PATH = "/api/v1/tasks";
 
     private static final UUID USER_UUID = UUID.fromString("9c186286-0ecb-422d-b19b-3e10c13221db");
     private static final UUID TASK_UUID = UUID.fromString("e2fabc2c-1722-4ecc-8a09-59a00eebc91b");
@@ -63,13 +62,14 @@ public class TaskControllerTest {
             .build();
 
     private static final TaskRequest TASK_REQUEST = TaskRequest.builder()
-            .taskName("ExampleTaskName")
+            .taskName("ExampleTask")
             .build();
 
     private static final Task TASK_ENTITY = Task.builder()
             .taskId(TASK_UUID)
             .taskName(TASK_REQUEST.getTaskName())
             .isComplete(false)
+            .userId(USER_UUID)
             .build();
 
     @BeforeEach
@@ -78,20 +78,20 @@ public class TaskControllerTest {
         jdbcTemplate.update("TRUNCATE TABLE t_task");
 
         userRepository.create(USER_ENTITY).block();
-        taskRepository.create(USER_UUID, TASK_ENTITY).block();
+        taskRepository.create(TASK_ENTITY).block();
     }
 
     @Test
     void testCreate() {
         webTestClient.post()
-                .uri("/api/v1/tasks/{userId}", USER_UUID)
+                .uri(API_PATH + "/{userId}", USER_UUID)
                 .contentType(APPLICATION_JSON)
                 .bodyValue(TASK_REQUEST)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(UUID.class)
                 .value(taskId -> {
-                    Mono<Task> taskFromDb = taskRepository.findTaskById(TASK_UUID);
+                    Mono<Task> taskFromDb = taskRepository.findById(TASK_UUID);
                     assertNotNull(taskFromDb);
 
                     StepVerifier.create(taskFromDb)
@@ -105,26 +105,46 @@ public class TaskControllerTest {
     @Test
     void testFindTaskById() {
         webTestClient.get()
-                .uri("/api/v1/tasks/{taskId}", TASK_UUID)
+                .uri(API_PATH + "/{taskId}", TASK_UUID)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(TaskResponse.class)
                 .value(taskResponse -> {
-                    Mono<Task> taskFromDb = taskRepository.findTaskById(taskResponse.getTaskId());
-                    assertNotNull(taskFromDb);
+                    assertAll(
+                            () -> assertNotNull(taskResponse),
+                            () -> assertEquals(TASK_UUID, taskResponse.getTaskId()),
+                            () -> assertEquals(USER_UUID, taskResponse.getUserId()),
+                            () -> assertEquals(TASK_REQUEST.getTaskName(), taskResponse.getTaskName())
+                    );
+                });
+    }
 
-                    StepVerifier.create(taskFromDb)
-                            .expectNextMatches(
-                                    task -> task.getTaskName().equals(taskResponse.getTaskName()) &&
-                                    task.getUserId().equals(taskResponse.getUserId())
-                            ).verifyComplete();
+    @Test
+    void testFindAll() {
+        webTestClient.get().uri(uriBuilder ->
+                uriBuilder.path(API_PATH)
+                        .queryParam("page", 1)
+                        .queryParam("pageSize", 10)
+                        .build())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TaskResponse.class)
+                .hasSize(1)
+                .consumeWith(responseList -> {
+                    TaskResponse actualResponse = responseList.getResponseBody().get(0);
+                    assertAll(
+                            () -> assertEquals(actualResponse.getTaskId(), TASK_UUID),
+                            () -> assertEquals(actualResponse.getUserId(), USER_UUID)
+                    );
                 });
     }
 
     @Test
     void testFindAllTasksByUserId() {
-        webTestClient.get()
-                .uri("/api/v1/tasks?userId={userId}", USER_UUID)
+        webTestClient.get().uri(uriBuilder ->
+                        uriBuilder.path(API_PATH + "/users")
+                                .queryParam("userId", USER_UUID)
+                                .build())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(TaskResponse.class)
@@ -136,38 +156,31 @@ public class TaskControllerTest {
 
     @Test
     void testUpdateTaskCompletion() {
-        webTestClient.put()
-                .uri(
-                        "/api/v1/tasks?userId={userId}&taskId={taskId}&isComplete={isComplete}",
-                        USER_UUID, TASK_UUID, true
-                        )
+        webTestClient.put().uri(uriBuilder ->
+                        uriBuilder.path(API_PATH)
+                                .queryParam("userId", USER_UUID)
+                                .queryParam("taskId", TASK_UUID)
+                                .queryParam("isComplete", true)
+                                .build())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(TaskResponse.class)
-                .consumeWith(taskResponse -> {
-                    Mono<Task> taskFromDb = taskRepository.findTaskById(TASK_UUID);
-                    assertNotNull(taskFromDb);
-
-                    StepVerifier.create(taskFromDb)
-                            .expectNextMatches(
-                                    task -> task.getTaskName().equals(TASK_ENTITY.getTaskName())
-                            ).verifyComplete();
+                .value(taskResponse -> {
+                    assertAll(
+                            () -> assertNotNull(taskResponse),
+                            () -> assertTrue(taskResponse.isComplete()),
+                            () -> assertEquals(USER_UUID, taskResponse.getUserId())
+                    );
                 });
     }
 
     @Test
     void testDeleteUsersTaskById() {
-        webTestClient.delete()
-                .uri("/api/v1/tasks?userId={userId}", USER_UUID)
+        webTestClient.delete().uri(uriBuilder ->
+                        uriBuilder.path(API_PATH)
+                                .queryParam("taskId", TASK_UUID)
+                                .build())
                 .exchange()
-                .expectStatus().isNoContent()
-                .expectBody()
-                .consumeWith(response -> {
-                    Mono<Task> deletedTask = taskRepository.findTaskById(TASK_UUID);
-
-                    StepVerifier.create(deletedTask)
-                            .expectError(TaskNotFoundException.class)
-                            .verify();
-                });
+                .expectStatus().isNoContent();
     }
 }

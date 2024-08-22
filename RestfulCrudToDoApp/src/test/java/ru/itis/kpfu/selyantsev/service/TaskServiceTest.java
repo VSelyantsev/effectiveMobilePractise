@@ -1,10 +1,12 @@
 package ru.itis.kpfu.selyantsev.service;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import reactor.core.publisher.Flux;
@@ -13,35 +15,30 @@ import reactor.test.StepVerifier;
 import ru.itis.kpfu.selyantsev.configuration.ContainerConfiguration;
 import ru.itis.kpfu.selyantsev.dto.request.TaskRequest;
 import ru.itis.kpfu.selyantsev.dto.response.TaskResponse;
-import ru.itis.kpfu.selyantsev.exceptions.TaskNotFoundException;
 import ru.itis.kpfu.selyantsev.model.Task;
-import ru.itis.kpfu.selyantsev.repository.TaskRepository;
 import ru.itis.kpfu.selyantsev.service.impl.TaskServiceImpl;
-import ru.itis.kpfu.selyantsev.utils.mappers.TaskMapper;
 
+import java.util.Objects;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles("test")
+@TestPropertySource(locations = "classpath:application-test.yml")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class TaskServiceTest {
 
     @Container
     PostgreSQLContainer<?> container = ContainerConfiguration.getInstance();
 
-    @Mock
-    private TaskRepository taskRepository;
-
-    @Mock
-    private TaskMapper taskMapper;
-
-    @InjectMocks
+    @Autowired
     private TaskServiceImpl taskService;
 
-    private static final UUID TASK_UUID = UUID.fromString("355da2f5-9992-4b8b-89e2-c9dad3c88828");
-    private static final UUID NOT_EXIST_TASK_UUID = UUID.fromString("b29e23a3-f5fe-41da-90b5-677600b34c9b");
-    private static final UUID USER_UUID = UUID.fromString("08514f4d-ea68-48f5-aa56-992aba4105be");
+    private static final UUID TASK_UUID = UUID.fromString("435cb8f4-470d-4343-bdff-5209002e3c8c");
+    private static final UUID USER_UUID = UUID.fromString("9c186286-0ecb-422d-b19b-3e10c13221db");
 
     private static final TaskRequest TASK_REQUEST = TaskRequest.builder()
             .taskName("ExampleTaskName")
@@ -49,7 +46,7 @@ public class TaskServiceTest {
 
     private static final Task TASK_ENTITY = Task.builder()
             .taskId(TASK_UUID)
-            .taskName(TASK_REQUEST.getTaskName())
+            .taskName("FirstTaskName")
             .isComplete(false)
             .userId(USER_UUID)
             .build();
@@ -62,73 +59,68 @@ public class TaskServiceTest {
             .build();
 
     @Test
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void testCreate() {
-        when(taskMapper.toEntity(TASK_REQUEST)).thenReturn(TASK_ENTITY);
-        when(taskRepository.create(TASK_UUID, TASK_ENTITY)).thenReturn(Mono.just(TASK_UUID));
+        Mono<UUID> result = taskService.create(USER_UUID, TASK_REQUEST);
 
-        Mono<UUID> actualResult = taskService.create(TASK_UUID, TASK_REQUEST);
-
-        StepVerifier.create(actualResult)
-                .expectNext(TASK_UUID)
+        StepVerifier.create(result)
+                .expectNextMatches(Objects::nonNull)
                 .verifyComplete();
     }
 
     @Test
-    void testFindTaskByValidUUID() {
-        when(taskRepository.findTaskById(TASK_UUID)).thenReturn(Mono.just(TASK_ENTITY));
-        when(taskMapper.toResponse(TASK_ENTITY)).thenReturn(TASK_RESPONSE);
-
-        Mono<TaskResponse> actualResult = taskService.findTaskById(TASK_UUID);
-
-        StepVerifier.create(actualResult)
-                .expectNext(TASK_RESPONSE)
-                .verifyComplete();
-    }
-
-    @Test
-    void testFindTaskByNotExistUUID_shouldThrowTaskNotFoundException() {
-        when(taskRepository.findTaskById(NOT_EXIST_TASK_UUID)).thenReturn(Mono.empty());
-
-        Mono<TaskResponse> actualResponse = taskService.findTaskById(NOT_EXIST_TASK_UUID);
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void testFindTaskById() {
+        Mono<TaskResponse> actualResponse = taskService.findTaskById(TASK_UUID);
 
         StepVerifier.create(actualResponse)
-                .expectError(TaskNotFoundException.class)
-                .verify();
+                .expectNextMatches(
+                        response -> response.getTaskName().equals(TASK_RESPONSE.getTaskName()) &&
+                        response.getUserId().equals(TASK_RESPONSE.getUserId())
+                ).verifyComplete();
     }
 
     @Test
-    void testFindAllTaskByValidUserUUID() {
-        when(taskRepository.findAllTasksByUserId(USER_UUID)).thenReturn(Flux.just(TASK_ENTITY));
-        when(taskMapper.toResponse(TASK_ENTITY)).thenReturn(TASK_RESPONSE);
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void testFindAll() {
+        Flux<TaskResponse> actualResult = taskService.findAll(1, 10);
 
-        Flux<TaskResponse> actualResponse = taskService.findAllTasksByUserId(USER_UUID);
+        StepVerifier.create(actualResult)
+                .expectNextMatches(
+                        response -> response.getTaskName().equals(TASK_RESPONSE.getTaskName()) &&
+                        response.getUserId().equals(TASK_RESPONSE.getUserId())
+                ).verifyComplete();
+    }
 
-        StepVerifier.create(actualResponse)
-                .expectNext(TASK_RESPONSE)
+    @Test
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void testFindAllTaskByUserUUID() {
+        Flux<TaskResponse> actualResult = taskService.findAllTasksByUserId(USER_UUID);
+
+        StepVerifier.create(actualResult)
+                .expectNextCount(1)
                 .verifyComplete();
     }
 
     @Test
-    void testUpdateTaskCompletion() {
-        when(taskRepository.updateTaskCompletionStatus(USER_UUID, TASK_UUID, true))
-                .thenReturn(Mono.just(TASK_ENTITY));
-
-        when(taskMapper.toResponse(TASK_ENTITY)).thenReturn(TASK_RESPONSE);
-
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void testUpdateTask() {
         Mono<TaskResponse> actualResponse = taskService.updateTaskCompletionStatus(USER_UUID, TASK_UUID, true);
 
         StepVerifier.create(actualResponse)
-                .expectNext(TASK_RESPONSE)
-                .verifyComplete();
+                .assertNext(response -> {
+                    assertTrue(response.isComplete());
+                    assertEquals(response.getUserId(), USER_UUID);
+                }).verifyComplete();
     }
 
     @Test
-    void testDeleteUsersTaskById() {
-        when(taskRepository.deleteUsersTaskById(USER_UUID)).thenReturn(Mono.empty());
+    @Sql(scripts = {"classpath:/sql/task.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void testDeleteUser() {
+        Mono<Void> actualResult = taskService.deleteTaskById(TASK_UUID);
 
-        Mono<Void> actualMonoVoid = taskService.deleteUsersTaskById(USER_UUID);
-
-        StepVerifier.create(actualMonoVoid)
+        StepVerifier.create(actualResult)
                 .verifyComplete();
     }
+
 }

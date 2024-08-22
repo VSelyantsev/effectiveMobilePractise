@@ -17,16 +17,14 @@ import ru.itis.kpfu.selyantsev.configuration.ContainerConfiguration;
 import ru.itis.kpfu.selyantsev.dto.request.TaskRequest;
 import ru.itis.kpfu.selyantsev.dto.request.UserRequest;
 import ru.itis.kpfu.selyantsev.dto.response.UserResponse;
-import ru.itis.kpfu.selyantsev.exceptions.UserNotFoundException;
 import ru.itis.kpfu.selyantsev.model.Task;
 import ru.itis.kpfu.selyantsev.model.User;
+import ru.itis.kpfu.selyantsev.repository.CrudRepository;
 import ru.itis.kpfu.selyantsev.repository.TaskRepository;
-import ru.itis.kpfu.selyantsev.repository.UserRepository;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -42,13 +40,15 @@ public class UserControllerTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private UserRepository userRepository;
+    private CrudRepository<User, UUID> userRepository;
 
     @Autowired
     private TaskRepository taskRepository;
 
     @Autowired
     private WebTestClient webTestClient;
+
+    private static final String API_PATH = "/api/v1/users";
 
     private static final UUID USER_UUID = UUID.fromString("9c186286-0ecb-422d-b19b-3e10c13221db");
     private static final UUID TASK_UUID = UUID.fromString("e2fabc2c-1722-4ecc-8a09-59a00eebc91b");
@@ -76,6 +76,7 @@ public class UserControllerTest {
             .taskId(TASK_UUID)
             .taskName(TASK_REQUEST.getTaskName())
             .isComplete(false)
+            .userId(USER_UUID)
             .build();
 
     @BeforeEach
@@ -84,20 +85,20 @@ public class UserControllerTest {
         jdbcTemplate.update("TRUNCATE TABLE t_task");
 
         userRepository.create(USER_ENTITY).block();
-        taskRepository.create(USER_UUID, TASK_ENTITY).block();
+        taskRepository.create(TASK_ENTITY).block();
     }
 
     @Test
     void createUser() {
         webTestClient.post()
-                .uri("/api/v1/users")
+                .uri(API_PATH)
                 .contentType(APPLICATION_JSON)
                 .bodyValue(USER_REQUEST)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(UUID.class)
                 .value(userId -> {
-                    Mono<User> userFromDb = userRepository.findUserById(userId);
+                    Mono<User> userFromDb = userRepository.findById(userId);
                     assertNotNull(userFromDb);
 
                     StepVerifier.create(userFromDb)
@@ -111,62 +112,62 @@ public class UserControllerTest {
     @Test
     void testFindUserById() {
         webTestClient.get()
-                .uri("/api/v1/users/{userId}", USER_UUID)
+                .uri(API_PATH + "/{userId}", USER_UUID)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
                 .value(userResponse -> {
-                    Mono<User> userFromDb = userRepository.findUserById(userResponse.getUserId());
-                    assertNotNull(userFromDb);
-
-                    StepVerifier.create(userFromDb)
-                            .expectNextMatches(
-                                    user -> user.getFirstName().equals(userResponse.getFirstName()) &&
-                                    user.getLastName().equals(userResponse.getLastName())
-                            );
+                    assertAll(
+                            () -> assertNotNull(userResponse),
+                            () -> assertEquals(userResponse.getFirstName(), USER_ENTITY.getFirstName()),
+                            () -> assertEquals(userResponse.getLastName(), USER_ENTITY.getLastName()),
+                            () -> assertEquals(userResponse.getTaskList().size(), 1)
+                    );
                 });
     }
 
     @Test
     void testFindAll() {
-        webTestClient.get()
-                .uri("/api/v1/users")
+        webTestClient.get().uri(uriBuilder ->
+                        uriBuilder.path(API_PATH)
+                                .queryParam("page", 1)
+                                .queryParam("pageSize", 10)
+                                .build())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(UserResponse.class)
                 .value(userList ->
-                        assertEquals(1, userList.size())
+                        assertAll(
+                                () -> assertNotNull(userList),
+                                () -> assertEquals(userList.size(), 1),
+                                () -> assertEquals(userList.get(0).getTaskList().size(), 1)
+                        )
                 );
     }
 
     @Test
     void testUpdateUserById() {
         webTestClient.put()
-                .uri("/api/v1/users/{userId}", USER_UUID)
+                .uri(API_PATH + "/{userId}", USER_UUID)
                 .bodyValue(UPDATE_REQUEST)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)
                 .value(userResponse -> {
-                    userResponse.getFirstName().equals(UPDATE_REQUEST.getFirstName());
-                    userResponse.getLastName().equals(UPDATE_REQUEST.getLastName());
-                    assertEquals(userResponse.getTaskList().size(), 1);
+                    assertAll(
+                            () -> assertNotNull(userResponse),
+                            () -> assertEquals(userResponse.getFirstName(), UPDATE_REQUEST.getFirstName()),
+                            () -> assertEquals(userResponse.getLastName(), UPDATE_REQUEST.getLastName()),
+                            () -> assertEquals(userResponse.getTaskList().size(), 1)
+                    );
                 });
     }
 
     @Test
     void testDeleteUserById() {
         webTestClient.delete()
-                .uri("/api/v1/users/{userId}", USER_UUID)
+                .uri(API_PATH + "/{userId}", USER_UUID)
                 .exchange()
-                .expectStatus().isNoContent()
-                .expectBody()
-                .consumeWith(response -> {
-                    Mono<User> deletedUser = userRepository.findUserById(USER_UUID);
-
-                    StepVerifier.create(deletedUser)
-                            .expectError(UserNotFoundException.class)
-                            .verify();
-                });
+                .expectStatus().isNoContent();
     }
 }

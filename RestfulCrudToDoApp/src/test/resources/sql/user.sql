@@ -1,4 +1,4 @@
 truncate table t_user;
 
 insert into t_user
-values ('e87f4a13-0bed-41ab-a243-ba3f353452fb', 'vlad1', 'sel1');
+values ('8004666d-0787-4a79-b338-ef88a6e1c6b0', 'test1', 'test2');

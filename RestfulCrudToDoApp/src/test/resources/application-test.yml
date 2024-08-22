@@ -6,6 +6,7 @@ spring:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   liquibase:
     change-log: db/changelog/changelog-master.yml
-#  sql:
-#    init:
-#      mode: always
+  sql:
+    init:
+      mode: always
+

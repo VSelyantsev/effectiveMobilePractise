@@ -2,8 +2,8 @@ package ru.itis.kpfu.selyantsev.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
@@ -13,182 +13,116 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import ru.itis.kpfu.selyantsev.configuration.ContainerConfiguration;
-import ru.itis.kpfu.selyantsev.exceptions.UserNotFoundException;
 import ru.itis.kpfu.selyantsev.model.User;
 import ru.itis.kpfu.selyantsev.repository.impl.UserRepositoryImpl;
-import ru.itis.kpfu.selyantsev.utils.rowMapper.UserRowMapper;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(locations = "classpath:application-test.yml")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class UserRepoImplTest {
 
     @Container
     PostgreSQLContainer<?> container = ContainerConfiguration.getInstance();
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
     private UserRepositoryImpl userRepository;
 
-    private static final String FIND_USER_BY_UUID = "SELECT * FROM t_user WHERE id = ?";
-    private static final String COUNT_USER = "SELECT COUNT(*) FROM t_user";
-    private static final String IF_EXISTS = "SELECT COUNT(*) FROM t_user WHERE id = ?";
+    private static final UUID USER_UUID = UUID.fromString("8004666d-0787-4a79-b338-ef88a6e1c6b0");
+    private static final UUID USER_UUID_FOR_CREATE = UUID.fromString("8004666d-0787-4a79-b338-ef88a6e1c619");
 
-    private static final UUID USER_UUID = UUID.fromString("e87f4a13-0bed-41ab-a243-ba3f353452fb");
-    private static final UUID NOT_VALID_UUID = UUID.fromString("61eeee71-6eee-4df1-9306-a21b802dd19d");
     private static final User MAPPED_USER = User.builder()
-            .userId(UUID.randomUUID())
-            .firstName("vlad1")
-            .lastName("sel1")
+            .userId(USER_UUID)
+            .firstName("test1")
+            .lastName("test2")
             .build();
-
-    private static final User EMPTY_USER = User.builder().build();
-
-    private Integer countUsers() {
-        return jdbcTemplate.queryForObject(COUNT_USER, Integer.class);
-    }
-
-    private Integer checkIfExist(UUID userId) {
-        return jdbcTemplate.queryForObject(
-                IF_EXISTS,
-                new Object[]{userId},
-                Integer.class
-        );
-    }
 
     @Test
     void testCreateUser() {
-        Mono<UUID> userIdMono = userRepository.create(MAPPED_USER);
+        User userForCreate = User.builder()
+                .userId(USER_UUID_FOR_CREATE)
+                .firstName("testName")
+                .lastName("testName")
+                .build();
 
-        StepVerifier.create(userIdMono)
-                .expectNext(MAPPED_USER.getUserId())
+        Mono<Integer> result = userRepository.create(userForCreate);
+
+        StepVerifier.create(result)
+                .expectNext(1)
                 .verifyComplete();
 
-        User user = jdbcTemplate.queryForObject(
-                FIND_USER_BY_UUID,
-                new Object[]{MAPPED_USER.getUserId()},
-                UserRowMapper.rowMapper
-        );
+        Mono<User> userFromDb = userRepository.findById(USER_UUID_FOR_CREATE);
 
-        assertNotNull(user);
-        assertEquals(user.getUserId(), MAPPED_USER.getUserId());
-        assertEquals(user.getFirstName(), MAPPED_USER.getFirstName());
-        assertEquals(user.getLastName(), MAPPED_USER.getLastName());
-        assertNotNull(userIdMono);
+        StepVerifier.create(userFromDb)
+                .expectNextMatches(
+                        user -> user.getFirstName().equals(userForCreate.getFirstName()) &&
+                        user.getUserId().equals(userForCreate.getUserId()) &&
+                        user.getLastName().equals(userForCreate.getLastName())
+                ).verifyComplete();
     }
 
     @Test
     @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void testFindUserByValidUserUUID() {
-        Mono<User> result = userRepository.findUserById(USER_UUID);
-
-        User userFromDb = jdbcTemplate.queryForObject(
-                FIND_USER_BY_UUID,
-                new Object[] {USER_UUID},
-                UserRowMapper.rowMapper
-        );
-
-        assertNotNull(userFromDb);
+        Mono<User> result = userRepository.findById(USER_UUID);
 
         StepVerifier.create(result)
                 .expectNextMatches(
-                        foundedUser -> foundedUser.getUserId().equals(userFromDb.getUserId()) &&
-                        foundedUser.getFirstName().equals(userFromDb.getFirstName()) &&
-                        foundedUser.getLastName().equals(userFromDb.getLastName())
+                        foundedUser -> foundedUser.getUserId().equals(MAPPED_USER.getUserId()) &&
+                        foundedUser.getFirstName().equals(MAPPED_USER.getFirstName()) &&
+                        foundedUser.getLastName().equals(MAPPED_USER.getLastName())
                 ).verifyComplete();
     }
 
     @Test
     @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
-    void testFindUserByNotExistUUID_shouldThrowUserNotFoundException() {
-        Mono<User> notExistUser = userRepository.findUserById(NOT_VALID_UUID);
-
-        StepVerifier.create(notExistUser)
-                .expectErrorMatches(
-                        throwable -> throwable instanceof UserNotFoundException &&
-                        throwable.getMessage().contains(NOT_VALID_UUID.toString())
-                ).verify();
-    }
-
-    @Test
-    @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void testFindAll() {
-        Flux<User> userFlux = userRepository.findAll();
+        Flux<User> userFlux = userRepository.findAll(1, 10);
 
-        StepVerifier.create(userFlux)
-                .expectNextCount(countUsers())
-                .expectComplete()
-                .verify();
+        StepVerifier.create(userFlux.count())
+                .assertNext(count -> assertTrue(count > 0))
+                .verifyComplete();
     }
 
     @Test
     @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void testUpdateUserByValidUUID() {
-        User dataForUpdate = User.builder()
-                .firstName("updatedUserFirstName")
-                .lastName("updatedUserLastName")
-                .build();
+        MAPPED_USER.setFirstName("updatedName");
+        MAPPED_USER.setLastName("updatedName2");
 
-        Mono<User> updatedUser = userRepository.updateUserById(USER_UUID, dataForUpdate);
-
-        assertNotNull(updatedUser);
+        Mono<Integer> updatedUser = userRepository.update(MAPPED_USER);
 
         StepVerifier.create(updatedUser)
-                .expectNextMatches(user ->
-                        user.getUserId().equals(USER_UUID) &&
-                        user.getFirstName().equals(dataForUpdate.getFirstName()) &&
-                        user.getLastName().equals(dataForUpdate.getLastName())
+                .expectNext(1)
+                .verifyComplete();
+
+        Mono<User> userFromDb = userRepository.findById(USER_UUID);
+
+        StepVerifier.create(userFromDb)
+                .expectNextMatches(
+                        user -> user.getFirstName().equals("updatedName") &&
+                        user.getLastName().equals("updatedName2")
                 ).verifyComplete();
-
-
-        User userFromDb = jdbcTemplate.queryForObject(
-                FIND_USER_BY_UUID,
-                new Object[] {USER_UUID},
-                UserRowMapper.rowMapper
-        );
-
-        assertNotNull(userFromDb);
-        assertEquals(dataForUpdate.getFirstName(), userFromDb.getFirstName());
-        assertEquals(dataForUpdate.getLastName(), userFromDb.getLastName());
     }
 
     @Test
     @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
-    void testUpdateUserByNotExistUUID_shouldThrowUserNotFoundException() {
-
-        Mono<User> notExistUser = userRepository.updateUserById(NOT_VALID_UUID, EMPTY_USER);
-
-        StepVerifier.create(notExistUser)
-                .expectErrorMatches(
-                        throwable -> throwable instanceof UserNotFoundException &&
-                        throwable.getMessage().contains(NOT_VALID_UUID.toString())
-                ).verify();
-    }
-
-    @Test
-    @Sql(scripts = {"classpath:/sql/user.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    @Sql(scripts = {"classpath:/sql/cleanup.sql"}, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void testDeleteUserByValidUUID() {
-        Mono<Void> expectedVoidResult = userRepository.deleteUserById(USER_UUID);
+        Mono<Integer> expectedVoidResult = userRepository.deleteById(USER_UUID);
 
         StepVerifier.create(expectedVoidResult)
+                .expectNext(1)
+                .verifyComplete();
+
+        Mono<User> userFromDb = userRepository.findById(USER_UUID);
+
+        StepVerifier.create(userFromDb)
                 .expectComplete()
                 .verify();
-
-        int isExist = checkIfExist(USER_UUID);
-        assertEquals(0, isExist);
     }
 
 }
