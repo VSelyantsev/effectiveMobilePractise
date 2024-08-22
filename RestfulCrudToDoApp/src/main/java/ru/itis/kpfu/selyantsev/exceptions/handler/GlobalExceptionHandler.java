@@ -6,6 +6,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.itis.kpfu.selyantsev.exceptions.TaskNotFoundException;
+import ru.itis.kpfu.selyantsev.exceptions.UserNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,5 +32,15 @@ public class GlobalExceptionHandler {
 
         ExceptionMessage actualMessage = new ExceptionMessage(actualError);
         return ResponseEntity.badRequest().body(actualMessage);
+    }
+
+    @ExceptionHandler(value = {UserNotFoundException.class, TaskNotFoundException.class})
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public final SimpleMessage handlerOnNotFoundExceptionMessage(Exception exception) {
+        return getInfoAboutMessage(exception);
+    }
+
+    private SimpleMessage getInfoAboutMessage(Exception exception) {
+        return new SimpleMessage(exception.getMessage(), exception.getClass().getName());
     }
 }

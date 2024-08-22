@@ -46,7 +46,6 @@ public class TaskRepositoryImpl implements TaskRepository {
                 )
         )
         .subscribeOn(fromExecutor(blockingPool))
-        .onErrorResume(EmptyResultDataAccessException.class, ex -> Mono.empty())
         .onErrorMap(DatabaseException::new);
     }
 
@@ -68,15 +67,16 @@ public class TaskRepositoryImpl implements TaskRepository {
     @Override
     public Flux<Task> findAll(int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return Flux.fromIterable(
+        return Mono.fromCallable(
                 // This is a blocking call, but it is isolated in a separate thread pool
-                template.query(
+                () -> template.query(
                         PAGEABLE_FIND_ALL_TASKS,
                         new Object[]{pageSize, offset},
                         TaskRowMapper.rowMapper
                 )
         )
         .subscribeOn(fromExecutor(blockingPool))
+        .flatMapMany(Flux::fromIterable)
         .onErrorMap(DatabaseException::new);
     }
 
@@ -108,15 +108,15 @@ public class TaskRepositoryImpl implements TaskRepository {
 
     @Override
     public Flux<Task> findAllTasksByUserId(UUID userId) {
-        return Flux.fromIterable(
-                // This is a blocking call, but it is isolated in a separate thread pool
-                template.query(
+        return Mono.fromCallable(
+                () -> template.query(
                         FIND_TASKS_BY_USER_UUID,
                         new Object[]{userId},
                         TaskRowMapper.rowMapper
                 )
         )
         .subscribeOn(fromExecutor(blockingPool))
+        .flatMapMany(Flux::fromIterable)
         .onErrorMap(DatabaseException::new);
     }
 }

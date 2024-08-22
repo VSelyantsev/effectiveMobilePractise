@@ -43,7 +43,6 @@ public class UserRepositoryImpl implements CrudRepository<User, UUID> {
                 )
         )
         .subscribeOn(fromExecutor(blockingPool))
-        .onErrorResume(EmptyResultDataAccessException.class, ex -> Mono.empty())
         .onErrorMap(DatabaseException::new);
     }
 
@@ -65,15 +64,16 @@ public class UserRepositoryImpl implements CrudRepository<User, UUID> {
     @Override
     public Flux<User> findAll(int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return Flux.fromIterable(
+        return Mono.fromCallable(
                 // This is a blocking call, but it is isolated in a separate thread pool
-                template.query(
+                () -> template.query(
                         PAGEABLE_FIND_ALL,
                         new Object[]{pageSize, offset},
                         UserRowMapper.rowMapper
                 )
         )
         .subscribeOn(fromExecutor(blockingPool))
+        .flatMapMany(Flux::fromIterable)
         .onErrorMap(DatabaseException::new);
     }
 

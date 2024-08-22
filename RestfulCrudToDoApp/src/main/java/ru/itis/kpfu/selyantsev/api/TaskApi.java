@@ -82,6 +82,10 @@ public interface TaskApi {
             @ApiResponse(responseCode = "400", description = "Bad Request"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error")
     })
+    @RequestMapping(
+            method = RequestMethod.GET,
+            produces = APPLICATION_JSON_VALUE
+    )
     @ResponseStatus(HttpStatus.OK)
     Flux<TaskResponse> findAll(
             @RequestParam int page,
@@ -103,6 +107,7 @@ public interface TaskApi {
     })
     @RequestMapping(
             method = RequestMethod.GET,
+            value = "/users",
             produces = APPLICATION_JSON_VALUE
     )
     @ResponseStatus(HttpStatus.OK)
