@@ -45,7 +45,10 @@ public interface TaskApi {
             value = "{userId}"
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Mono<UUID> create(@PathVariable UUID userId, @Valid @RequestBody TaskRequest task);
+    Mono<UUID> create(
+            @PathVariable(name = "userId") UUID userId,
+            @Valid @RequestBody TaskRequest task
+    );
 
     @Operation(summary = "Find Task By taskId")
     @ApiResponses(value = {
@@ -67,7 +70,7 @@ public interface TaskApi {
             value = "{taskId}"
     )
     @ResponseStatus(HttpStatus.OK)
-    Mono<TaskResponse> findTaskById(@PathVariable UUID taskId);
+    Mono<TaskResponse> findTaskById(@PathVariable(name = "taskId") UUID taskId);
 
     @Operation(summary = "Find all tasks")
     @ApiResponses(value = {
@@ -88,31 +91,8 @@ public interface TaskApi {
     )
     @ResponseStatus(HttpStatus.OK)
     Flux<TaskResponse> findAll(
-            @RequestParam int page,
-            @RequestParam int pageSize
-    );
-
-    @Operation(summary = "Find all User tasks By userId")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Return User Tasks Representation",
-                    content = @Content(
-                            mediaType = APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = TaskResponse.class))
-                    )
-            ),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error")
-    })
-    @RequestMapping(
-            method = RequestMethod.GET,
-            value = "/users",
-            produces = APPLICATION_JSON_VALUE
-    )
-    @ResponseStatus(HttpStatus.OK)
-    Flux<TaskResponse> findAllTasksByUserId(
-            @RequestParam UUID userId
+            @RequestParam(name = "page") int page,
+            @RequestParam(name = "pageSize") int pageSize
     );
 
     @Operation(summary = "Update task execution status")
@@ -135,9 +115,9 @@ public interface TaskApi {
     )
     @ResponseStatus(HttpStatus.OK)
     Mono<TaskResponse> updateTaskCompletionStatus(
-            @RequestParam UUID userId,
-            @RequestParam UUID taskId,
-            @RequestParam boolean isComplete
+            @RequestParam(name = "userId") UUID userId,
+            @RequestParam(name = "taskId") UUID taskId,
+            @RequestParam(name = "isComplete") boolean isComplete
     );
 
     @Operation(summary = "Delete task by taskId")
@@ -151,5 +131,5 @@ public interface TaskApi {
             method = RequestMethod.DELETE
     )
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    Mono<Void> deleteTaskByTaskId(@RequestParam UUID taskId);
+    Mono<Void> deleteTaskByTaskId(@RequestParam(name = "taskId") UUID taskId);
 }

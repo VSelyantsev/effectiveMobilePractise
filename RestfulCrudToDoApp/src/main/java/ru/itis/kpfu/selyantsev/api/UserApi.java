@@ -87,8 +87,8 @@ public interface UserApi {
     )
     @ResponseStatus(HttpStatus.OK)
     Flux<UserResponse> findAll(
-            @RequestParam int page,
-            @RequestParam int pageSize
+            @RequestParam(name = "page") int page,
+            @RequestParam(name = "pageSize") int pageSize
     );
 
     @Operation(summary = "Update user by userId")
@@ -112,7 +112,10 @@ public interface UserApi {
             value = "/{userId}"
     )
     @ResponseStatus(HttpStatus.OK)
-    Mono<UserResponse> updateUserById(@PathVariable UUID userId, @Valid @RequestBody UserRequest userRequest);
+    Mono<UserResponse> updateUserById(
+            @PathVariable(name = "userId") UUID userId,
+            @Valid @RequestBody UserRequest userRequest
+    );
 
     @Operation(summary = "Delete user by userId")
     @ApiResponses(value = {
@@ -126,5 +129,5 @@ public interface UserApi {
             value = "/{userId}"
     )
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    Mono<Void> deleteUserById(@PathVariable UUID userId);
+    Mono<Void> deleteUserById(@PathVariable(name = "userId") UUID userId);
 }

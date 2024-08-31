@@ -5,13 +5,13 @@ import reactor.core.publisher.Mono;
 
 public interface CrudRepository<T, ID> {
 
-    Mono<Integer> create(T t);
+    Mono<ID> create(T t);
 
     Mono<T> findById(ID id);
 
     Flux<T> findAll(int page, int pageSize);
 
-    Mono<Integer> update(T t);
+    Mono<T> update(T t);
 
-    Mono<Integer> deleteById(ID id);
+    Mono<Void> deleteById(ID id);
 }

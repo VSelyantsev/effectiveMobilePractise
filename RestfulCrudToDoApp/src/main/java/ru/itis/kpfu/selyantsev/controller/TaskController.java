@@ -33,11 +33,6 @@ public class TaskController implements TaskApi {
     }
 
     @Override
-    public Flux<TaskResponse> findAllTasksByUserId(UUID userId) {
-        return taskService.findAllTasksByUserId(userId);
-    }
-
-    @Override
     public Mono<TaskResponse> updateTaskCompletionStatus(UUID userId, UUID taskId, boolean isComplete) {
         return taskService.updateTaskCompletionStatus(userId, taskId, isComplete);
     }

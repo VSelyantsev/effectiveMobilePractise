@@ -10,10 +10,12 @@ import reactor.core.publisher.Mono;
 import ru.itis.kpfu.selyantsev.dto.request.TaskRequest;
 import ru.itis.kpfu.selyantsev.dto.response.TaskResponse;
 import ru.itis.kpfu.selyantsev.exceptions.FailedExecuteOperation;
+import ru.itis.kpfu.selyantsev.exceptions.InvalidIdException;
 import ru.itis.kpfu.selyantsev.exceptions.NotBelongUserTask;
 import ru.itis.kpfu.selyantsev.exceptions.TaskNotFoundException;
 import ru.itis.kpfu.selyantsev.model.Task;
-import ru.itis.kpfu.selyantsev.repository.TaskRepository;
+import ru.itis.kpfu.selyantsev.model.User;
+import ru.itis.kpfu.selyantsev.repository.CrudRepository;
 import ru.itis.kpfu.selyantsev.service.TaskService;
 import ru.itis.kpfu.selyantsev.utils.mappers.TaskMapper;
 
@@ -23,19 +25,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
 
-    private final TaskRepository repository;
+    private final CrudRepository<Task, UUID> repository;
     private final TaskMapper mapper;
 
     @Override
     public Mono<UUID> create(UUID userId, TaskRequest taskRequest) {
         Task mappedEntity = mapper.toEntity(taskRequest);
-        mappedEntity.setUserId(userId);
+        mappedEntity.setUser(User.builder().userId(userId).build());
         return repository.create(mappedEntity)
-                .flatMap(rowsInserted -> {
-                    if (rowsInserted == 0) {
+                .flatMap(uuid -> {
+                    if (uuid == null) {
                         return Mono.error(new FailedExecuteOperation(mappedEntity.getTaskId()));
                     }
-                    return Mono.just(mappedEntity.getTaskId());
+                    return Mono.just(uuid);
                 });
     }
 
@@ -43,7 +45,13 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Mono<TaskResponse> findTaskById(UUID taskId) {
         return repository.findById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
+                .switchIfEmpty(Mono.error(new InvalidIdException(taskId)))
+                .flatMap(task -> {
+                    if (task == null) {
+                        return Mono.error(new TaskNotFoundException(taskId));
+                    }
+                    return Mono.just(task);
+                })
                 .map(mapper::toResponse);
     }
 
@@ -53,33 +61,25 @@ public class TaskServiceImpl implements TaskService {
                 .map(mapper::toResponse);
     }
 
-    @Cacheable(value = "taskByUser", key = "#userId")
-    @Override
-    public Flux<TaskResponse> findAllTasksByUserId(UUID userId) {
-        return repository.findAllTasksByUserId(userId)
-                .map(mapper::toResponse);
-    }
-
     @CachePut(value = "tasks", key = "#taskId")
     @Override
     public Mono<TaskResponse> updateTaskCompletionStatus(UUID userId, UUID taskId, boolean isComplete) {
         return repository.findById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
+                .switchIfEmpty(Mono.error(new InvalidIdException(taskId)))
                 .flatMap(task -> {
-                    if (!task.getUserId().equals(userId)) {
+
+                    if (task == null) {
+                        return Mono.error(new TaskNotFoundException(taskId));
+                    }
+
+                    if (!task.getUser().getUserId().equals(userId)) {
                         return Mono.error(new NotBelongUserTask(userId, taskId));
                     }
 
                     task.setComplete(isComplete);
 
                     return repository.update(task)
-                            .flatMap(rowsUpdated -> {
-                                if (rowsUpdated == 0) {
-                                    return Mono.error(new FailedExecuteOperation(task.getTaskId()));
-                                }
-
-                                return Mono.just(mapper.toResponse(task));
-                            });
+                            .map(mapper::toResponse);
                 });
     }
 
@@ -87,7 +87,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Mono<Void> deleteTaskById(UUID taskId) {
         return repository.deleteById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
+                .switchIfEmpty(Mono.error(new InvalidIdException(taskId)))
                 .then();
     }
 }

@@ -10,10 +10,10 @@ import reactor.core.publisher.Mono;
 import ru.itis.kpfu.selyantsev.dto.request.UserRequest;
 import ru.itis.kpfu.selyantsev.dto.response.UserResponse;
 import ru.itis.kpfu.selyantsev.exceptions.FailedExecuteOperation;
+import ru.itis.kpfu.selyantsev.exceptions.InvalidIdException;
 import ru.itis.kpfu.selyantsev.exceptions.UserNotFoundException;
 import ru.itis.kpfu.selyantsev.model.User;
 import ru.itis.kpfu.selyantsev.repository.CrudRepository;
-import ru.itis.kpfu.selyantsev.service.TaskService;
 import ru.itis.kpfu.selyantsev.service.UserService;
 import ru.itis.kpfu.selyantsev.utils.mappers.UserMapper;
 
@@ -24,51 +24,39 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final CrudRepository<User, UUID> userRepository;
-    private final TaskService taskService;
     private final UserMapper userMapper;
 
     @Override
     public Mono<UUID> create(UserRequest userRequest) {
         User mappedUser = userMapper.toEntity(userRequest);
         return userRepository.create(mappedUser)
-                .flatMap(rowsInserted -> {
-                    if (rowsInserted == 0) {
+                .flatMap(uuid -> {
+                    if (uuid == null) {
                         return Mono.error(new FailedExecuteOperation(mappedUser.getUserId()));
                     }
-                    return Mono.just(mappedUser.getUserId());
+                    return Mono.just(uuid);
                 });
     }
 
     @Cacheable(value = "users", key = "#userId")
     @Override
     public Mono<UserResponse> findUserById(UUID userId) {
-        Mono<User> entity = userRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(userId)));
-
-        return entity.flatMap(user ->
-                taskService.findAllTasksByUserId(userId).collectList()
-                        .map(taskList -> {
-                            UserResponse response = userMapper.toResponse(user);
-                            response.setTaskList(taskList);
-                            return response;
-                        })
-        );
+        return userRepository.findById(userId)
+                .switchIfEmpty(Mono.error(new InvalidIdException(userId)))
+                .flatMap(user -> {
+                    if (user == null) {
+                        return Mono.error(new UserNotFoundException(userId));
+                    }
+                    return Mono.just(user);
+                })
+                .map(userMapper::toResponse);
     }
-    
+
     @Cacheable(value = "allUsers")
     @Override
     public Flux<UserResponse> findAll(int page, int pageSize) {
-        Flux<User> userFlux = userRepository.findAll(page, pageSize);
-
-        return userFlux.flatMap(user ->
-                taskService.findAllTasksByUserId(user.getUserId())
-                        .collectList()
-                        .map(taskList -> {
-                            UserResponse userResponse = userMapper.toResponse(user);
-                            userResponse.setTaskList(taskList);
-                            return userResponse;
-                        })
-        );
+        return userRepository.findAll(page, pageSize)
+                .map(userMapper::toResponse);
     }
 
     @CachePut(value = "users", key = "#userId")
@@ -77,32 +65,24 @@ public class UserServiceImpl implements UserService {
         User mappedUser = userMapper.toEntity(userRequest);
 
         return userRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(userId)))
+                .switchIfEmpty(Mono.error(new InvalidIdException(userId)))
                 .flatMap(existingUser -> {
+
+                    if (existingUser == null) {
+                        return Mono.error(new UserNotFoundException(userId));
+                    }
+
                     existingUser.setFirstName(mappedUser.getFirstName());
                     existingUser.setLastName(mappedUser.getLastName());
 
                     return userRepository.update(existingUser)
-                            .flatMap(rowsUpdated -> {
-                                if (rowsUpdated == 0) {
-                                    return Mono.error(new FailedExecuteOperation(existingUser.getUserId()));
-                                }
-
-                                UserResponse response = userMapper.toResponse(existingUser);
-                                return taskService.findAllTasksByUserId(userId).collectList()
-                                        .map(taskResponses -> {
-                                            response.setTaskList(taskResponses);
-                                            return response;
-                                        });
-                            });
+                            .map(userMapper::toResponse);
                 });
     }
 
     @CacheEvict(value = "users", key = "#userId")
     @Override
     public Mono<Void> deleteUserById(UUID userId) {
-        return userRepository.deleteById(userId)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(userId)))
-                .then();
+        return userRepository.deleteById(userId);
     }
 }
