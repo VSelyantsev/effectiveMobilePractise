@@ -1,7 +1,9 @@
 spring:
   application:
     name: RestfulCrudToDoApp
-
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
   liquibase:
     change-log: db/changelog/changelog-master.yml
 
@@ -10,3 +12,4 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+

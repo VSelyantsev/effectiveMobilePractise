@@ -4,15 +4,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import ru.itis.kpfu.selyantsev.dto.request.TaskRequest;
 import ru.itis.kpfu.selyantsev.dto.response.TaskResponse;
-import ru.itis.kpfu.selyantsev.exceptions.FailedExecuteOperation;
 import ru.itis.kpfu.selyantsev.exceptions.NotBelongUserTask;
 import ru.itis.kpfu.selyantsev.exceptions.TaskNotFoundException;
 import ru.itis.kpfu.selyantsev.model.Task;
+import ru.itis.kpfu.selyantsev.model.User;
 import ru.itis.kpfu.selyantsev.repository.TaskRepository;
 import ru.itis.kpfu.selyantsev.service.TaskService;
 import ru.itis.kpfu.selyantsev.utils.mappers.TaskMapper;
@@ -29,65 +33,53 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Mono<UUID> create(UUID userId, TaskRequest taskRequest) {
         Task mappedEntity = mapper.toEntity(taskRequest);
-        mappedEntity.setUserId(userId);
-        return repository.create(mappedEntity)
-                .flatMap(rowsInserted -> {
-                    if (rowsInserted == 0) {
-                        return Mono.error(new FailedExecuteOperation(mappedEntity.getTaskId()));
-                    }
-                    return Mono.just(mappedEntity.getTaskId());
-                });
+        mappedEntity.setUser(User.builder().userId(userId).build());
+        return Mono.fromCallable(
+                () -> repository.save(mappedEntity).getTaskId()
+        ).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Cacheable(value = "tasks", key = "#taskId")
     @Override
     public Mono<TaskResponse> findTaskById(UUID taskId) {
-        return repository.findById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
-                .map(mapper::toResponse);
+        return Mono.fromCallable(
+                () -> repository.findById(taskId)
+                        .orElseThrow(() -> new TaskNotFoundException(taskId))
+        ).subscribeOn(Schedulers.boundedElastic())
+        .map(mapper::toResponse);
     }
 
     @Override
     public Flux<TaskResponse> findAll(int page, int pageSize) {
-        return repository.findAll(page, pageSize)
-                .map(mapper::toResponse);
-    }
+        Pageable pageable = PageRequest.of(page - 1, pageSize);
 
-    @Cacheable(value = "taskByUser", key = "#userId")
-    @Override
-    public Flux<TaskResponse> findAllTasksByUserId(UUID userId) {
-        return repository.findAllTasksByUserId(userId)
-                .map(mapper::toResponse);
+        return Flux.defer(() -> {
+            Page<Task> taskPage = repository.findAll(pageable);
+            return Flux.fromIterable(taskPage.getContent());
+        }).map(mapper::toResponse);
     }
 
     @CachePut(value = "tasks", key = "#taskId")
     @Override
     public Mono<TaskResponse> updateTaskCompletionStatus(UUID userId, UUID taskId, boolean isComplete) {
-        return repository.findById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
-                .flatMap(task -> {
-                    if (!task.getUserId().equals(userId)) {
-                        return Mono.error(new NotBelongUserTask(userId, taskId));
-                    }
+        return Mono.fromCallable(
+                () -> repository.findById(taskId)
+                        .orElseThrow(() -> new TaskNotFoundException(taskId))
+        ).flatMap(task -> {
+            if (!task.getUser().getUserId().equals(userId)) {
+                return Mono.error(new NotBelongUserTask(userId, taskId));
+            }
 
-                    task.setComplete(isComplete);
-
-                    return repository.update(task)
-                            .flatMap(rowsUpdated -> {
-                                if (rowsUpdated == 0) {
-                                    return Mono.error(new FailedExecuteOperation(task.getTaskId()));
-                                }
-
-                                return Mono.just(mapper.toResponse(task));
-                            });
-                });
+            task.setComplete(isComplete);
+            return Mono.just(mapper.toResponse(repository.save(task)));
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    @CacheEvict(value = "taskByUser", key = "#userId")
+    @CacheEvict(value = "taskByUser", key = "#taskId")
     @Override
     public Mono<Void> deleteTaskById(UUID taskId) {
-        return repository.deleteById(taskId)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(taskId)))
+        return Mono.fromRunnable(() -> repository.deleteById(taskId))
+                .subscribeOn(Schedulers.boundedElastic())
                 .then();
     }
 }

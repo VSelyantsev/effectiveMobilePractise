@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface UserService {
     Mono<UUID> create(UserRequest userRequest);
-    Mono<UserResponse> findUserById(UUID userId);
+    Mono<UserResponse> findUserByUserIdWithTasks(UUID userId);
     Flux<UserResponse> findAll(int page, int pageSize);
     Mono<UserResponse> updateUserById(UUID userId, UserRequest userRequest);
     Mono<Void> deleteUserById(UUID userId);

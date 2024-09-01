@@ -92,29 +92,6 @@ public interface TaskApi {
             @RequestParam int pageSize
     );
 
-    @Operation(summary = "Find all User tasks By userId")
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Return User Tasks Representation",
-                    content = @Content(
-                            mediaType = APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = TaskResponse.class))
-                    )
-            ),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error")
-    })
-    @RequestMapping(
-            method = RequestMethod.GET,
-            value = "/users",
-            produces = APPLICATION_JSON_VALUE
-    )
-    @ResponseStatus(HttpStatus.OK)
-    Flux<TaskResponse> findAllTasksByUserId(
-            @RequestParam UUID userId
-    );
-
     @Operation(summary = "Update task execution status")
     @ApiResponses(value = {
             @ApiResponse(

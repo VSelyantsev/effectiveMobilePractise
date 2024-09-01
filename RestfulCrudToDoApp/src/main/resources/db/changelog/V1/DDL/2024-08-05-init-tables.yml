@@ -8,7 +8,7 @@ databaseChangeLog:
             tableName: t_user
             columns:
               - column:
-                  name: id
+                  name: user_id
                   type: uuid
               - column:
                   name: first_name
@@ -21,7 +21,7 @@ databaseChangeLog:
             tableName: t_task
             columns:
               - column:
-                  name: id
+                  name: task_id
                   type: uuid
               - column:
                   name: task_name

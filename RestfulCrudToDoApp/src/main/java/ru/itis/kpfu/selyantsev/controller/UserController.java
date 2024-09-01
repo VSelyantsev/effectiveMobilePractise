@@ -24,7 +24,7 @@ public class UserController implements UserApi {
 
     @Override
     public Mono<UserResponse> findUserById(UUID userId) {
-        return userService.findUserById(userId);
+        return userService.findUserByUserIdWithTasks(userId);
     }
 
     @Override
