@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: '1'
+      author: 'Selyantsev Vladislav'
+
+      changes:
+        - createTable:
+            tableName: t_url
+            columns:
+              - column:
+                  name: url_id
+                  type: uuid
+              - column:
+                  name: expiration_date
+                  type: timestamp
+              - column:
+                  name: full_hash
+                  type: varchar(255)
+              - column:
+                  name: original_url
+                  type: varchar(255)
+              - column:
+                  name: short_url
+                  type: varchar(255)
