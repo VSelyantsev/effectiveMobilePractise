@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: '1'
+      author: 'Selyantsev Vladislav'
+
+      changes:
+        - createTable:
+            tableName: t_user
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+              - column:
+                  name: first_name
+                  type: varchar(255)
+              - column:
+                  name: last_name
+                  type: varchar(255)
+              - column:
+                  name: email
+                  type: varchar(255)
