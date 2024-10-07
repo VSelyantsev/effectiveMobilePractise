@@ -14,9 +14,14 @@ import ru.itis.kpfu.selyantsev.service.AuthService;
 import ru.itis.kpfu.selyantsev.service.ConfirmationCodeStorageService;
 import ru.itis.kpfu.selyantsev.filter.JwtProvider;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger logger = Logger.getLogger(AuthServiceImpl.class.getName());
 
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
@@ -24,6 +29,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public JwtResponse login(@NonNull JwtRequest jwtRequest) {
+        logger.log(Level.INFO, "Trying to login...");
         final User user = userRepository.findUserByEmail(jwtRequest.getEmail())
                 .orElseThrow(() -> new UserNotFoundException(jwtRequest.getEmail()));
 
@@ -33,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidConfirmationCodeException(jwtRequest.getConfirmationCode(), jwtRequest.getEmail());
         }
         final String accessToken = jwtProvider.generateAccessToken(user);
+        logger.log(Level.INFO, "logging successful");
         return new JwtResponse(accessToken);
     }
 }

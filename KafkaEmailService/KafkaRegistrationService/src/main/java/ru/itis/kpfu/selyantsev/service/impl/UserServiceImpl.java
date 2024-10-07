@@ -11,10 +11,14 @@ import ru.itis.kpfu.selyantsev.util.ConfirmationCodeGenerator;
 import ru.itis.kpfu.selyantsev.util.UserMapper;
 
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    private static final Logger logger = Logger.getLogger(UserServiceImpl.class.getName());
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -23,6 +27,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UUID create(UserRequest userRequest) {
+        logger.log(Level.INFO, "creating user...");
         User mappedUser = userMapper.toEntity(userRequest);
         String confirmationCode = ConfirmationCodeGenerator.generateConfirmationCode();
         storageService.saveConfirmationCode(mappedUser.getEmail(), confirmationCode);

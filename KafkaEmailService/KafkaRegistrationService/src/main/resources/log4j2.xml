@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n"/>
+        </Console>
+
+        <KafkaAppender name="KafkaAppender" topic="log-topic">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %c{1}:%L - %m%n"/>
+            <Property name="bootstrap.servers">localhost:9092</Property>
+            <Property name="key.serializer">org.apache.kafka.common.serialization.StringSerializer</Property>
+            <Property name="value.serializer">org.apache.kafka.common.serialization.StringSerializer</Property>
+            <Filters>
+                <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </KafkaAppender>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="ru.itis.kpfu.selyantsev" level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="KafkaAppender"/>
+        </Logger>
+
+        <Root level="info">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

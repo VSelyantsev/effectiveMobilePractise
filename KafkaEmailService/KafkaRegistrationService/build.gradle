@@ -18,13 +18,20 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
 }
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
+    implementation('org.springframework.boot:spring-boot-starter')
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -47,6 +54,9 @@ dependencies {
     testImplementation "org.testcontainers:testcontainers:1.19.1"
     testImplementation "org.testcontainers:junit-jupiter:1.19.1"
     testImplementation "org.testcontainers:postgresql:1.19.1"
+
+    // appender
+    implementation 'ru.itis.kpfu.selyantsev:KafkaAppenderForLogging:1.0-SNAPSHOT'
 
     //jwt
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'

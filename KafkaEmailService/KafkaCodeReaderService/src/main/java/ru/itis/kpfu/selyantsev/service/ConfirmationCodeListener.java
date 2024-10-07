@@ -11,4 +11,9 @@ public class ConfirmationCodeListener {
     public void listen(ConsumerRecord<String, String> record) {
         System.out.println("Received Message: " + record.key() + " " + record.value());
     }
+
+    @KafkaListener(topics = "log-topic", groupId = "log-topic-group")
+    public void listenLogTopic(ConsumerRecord<String, String> record) {
+        System.out.println(record.key() + " " + record.value());
+    }
 }
