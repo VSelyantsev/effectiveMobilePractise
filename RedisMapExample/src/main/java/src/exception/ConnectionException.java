@@ -1,4 +1,4 @@
-package exception;
+package src.exception;
 
 import redis.clients.jedis.exceptions.JedisConnectionException;
 

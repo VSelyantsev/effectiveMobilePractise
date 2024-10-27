@@ -1,3 +1,5 @@
+package src;
+
 import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.logging.Level;
@@ -10,7 +12,7 @@ public class Main {
     public static void main(String[] args) {
 
         try {
-            RedisMap redisMap = new RedisMap("localhost", 6379);
+            RedisMap redisMap = new RedisMap("redis", 6379);
 
             String oldValue = redisMap.put("1", "firstPackageData");
             System.out.println(oldValue);

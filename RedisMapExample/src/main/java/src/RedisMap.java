@@ -1,5 +1,7 @@
-import exception.ConnectionException;
-import exception.ExecuteException;
+package src;
+
+import src.exception.ConnectionException;
+import src.exception.ExecuteException;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
