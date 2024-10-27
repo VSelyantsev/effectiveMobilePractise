@@ -1,3 +1,5 @@
+package src;
+
 public class Printer {
     private final Object lock = new Object();
     private boolean evenTurn = true;
