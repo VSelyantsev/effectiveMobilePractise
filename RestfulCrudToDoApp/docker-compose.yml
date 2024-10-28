@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+#    environment:
+#      - DB_URL=jdbc:postgresql://0.0.0.0:5433/crud_app
+#      - DB_USERNAME=postgres
+#      - DB_PASSWORD=rootroot
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+
+  db:
+    container_name: "postgres_for_crud_app"
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/db:/docker-entrypoint-initdb.d/create_db.sql
+    ports:
+      - "5433:5432"
+
+volumes:
+  postgres_data:
