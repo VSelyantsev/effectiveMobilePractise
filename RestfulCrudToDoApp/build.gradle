@@ -8,6 +8,7 @@ plugins {
 group = 'ru.itis.kpfu.selyantsev'
 version = '0.0.1-SNAPSHOT'
 
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
@@ -62,6 +63,18 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.mockito:mockito-core'
+}
+
+bootJar {
+    enabled = true
+    manifest {
+        attributes 'Start-class': 'ru.itis.kpfu.selyantsev.RestfulCrudToDoAppApplication'
+    }
+    mainClass = 'ru.itis.kpfu.selyantsev.RestfulCrudToDoAppApplication'
+}
+
+tasks.jar {
+    enabled = true
 }
 
 jacoco {

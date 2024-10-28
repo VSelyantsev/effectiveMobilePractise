@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app_hibernate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    depends_on:
+      - db_hibernate_postgres
+
+  db_hibernate_postgres:
+    container_name: "postgres_for_crud_app_hibernate"
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/db/create-db.sql:/docker-entrypoint-initdb.d/create-db.sql
+#      - ./infrastructure/db/:init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+#    entrypoint: ["docker-entrypoint-initdb.d/init-db.sh"]
+    ports:
+      - "5433:5432"
+
+
+volumes:
+  postgres_data:
