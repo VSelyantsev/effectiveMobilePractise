@@ -1,5 +1,7 @@
-import exceptions.ClientReadWriteException;
-import exceptions.ClientSocketCloseException;
+package src;
+
+import src.exceptions.ClientReadWriteException;
+import src.exceptions.ClientSocketCloseException;
 
 import java.io.BufferedReader;
 import java.io.IOException;

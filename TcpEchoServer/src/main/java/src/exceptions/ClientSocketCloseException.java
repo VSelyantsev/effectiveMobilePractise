@@ -1,4 +1,4 @@
-package exceptions;
+package src.exceptions;
 
 import java.net.SocketException;
 

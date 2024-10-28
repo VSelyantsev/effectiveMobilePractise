@@ -1,4 +1,6 @@
-import exceptions.ClientSocketCloseException;
+package src;
+
+import src.exceptions.ClientSocketCloseException;
 
 import java.net.ServerSocket;
 import java.net.Socket;
