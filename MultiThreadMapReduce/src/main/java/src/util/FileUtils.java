@@ -1,7 +1,7 @@
-package util;
+package src.util;
 
-import exceptions.IncorrectFileFormatException;
-import exceptions.NotExistDirectory;
+import src.exceptions.IncorrectFileFormatException;
+import src.exceptions.NotExistDirectory;
 
 import java.io.File;
 import java.io.IOException;

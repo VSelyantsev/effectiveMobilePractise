@@ -1,8 +1,8 @@
-package service.runnable;
+package src.service.runnable;
 
-import exceptions.NotExistDirectory;
-import model.KeyValue;
-import model.TaskRequest;
+import src.exceptions.NotExistDirectory;
+import src.model.KeyValue;
+import src.model.TaskRequest;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -45,7 +45,7 @@ public class MapWorker implements Runnable {
         }
     }
 
-    private void distribute(List<KeyValue> keyValues) throws IOException {
+    private synchronized void distribute(List<KeyValue> keyValues) throws IOException {
         Map<Integer, List<KeyValue>> reduceTaskMap = new HashMap<>();
 
         for (int i = 0; i < taskRequest.getTaskReduce(); i++) {
@@ -84,7 +84,7 @@ public class MapWorker implements Runnable {
         }
     }
 
-    private List<KeyValue> map(String fileName, String content) {
+    private synchronized List<KeyValue> map(String fileName, String content) {
         logger.log(Level.INFO, String.format("Start processing the file: %s", fileName));
 
         List<KeyValue> keyValues = new ArrayList<>();

@@ -1,8 +1,8 @@
-package service;
+package src.service;
 
-import model.TaskRequest;
-import service.runnable.MapWorker;
-import service.runnable.ReduceWorker;
+import src.model.TaskRequest;
+import src.service.runnable.MapWorker;
+import src.service.runnable.ReduceWorker;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,8 +13,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static util.FileUtils.searchFiles;
-import static util.FileUtils.sortedFilesBySuffix;
+import static src.util.FileUtils.searchFiles;
+import static src.util.FileUtils.sortedFilesBySuffix;
 
 public class Coordinator {
 

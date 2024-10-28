@@ -1,6 +1,6 @@
-package service.runnable;
+package src.service.runnable;
 
-import exceptions.NotExistDirectory;
+import src.exceptions.NotExistDirectory;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,7 +56,7 @@ public class ReduceWorker implements Runnable {
         return allLines;
     }
 
-    private Map<String, List<String>> sortData(List<String> lines) {
+    private synchronized Map<String, List<String>> sortData(List<String> lines) {
         Map<String, List<String>> sortedData = new TreeMap<>();
 
         for (String line : lines) {
@@ -68,12 +68,12 @@ public class ReduceWorker implements Runnable {
         return sortedData;
     }
 
-    private String reduce(String key, List<String> values) {
+    private synchronized String reduce(String key, List<String> values) {
         int valueSize = values.size();
         return key + " " + valueSize;
     }
 
-    private void reduceFinalResult(Map<String, List<String>> sortedData) throws IOException {
+    private synchronized void reduceFinalResult(Map<String, List<String>> sortedData) throws IOException {
         Path actualDirectory = Paths.get(FINAL_RESULT_PATH);
         if (Files.notExists(actualDirectory)) {
             try {

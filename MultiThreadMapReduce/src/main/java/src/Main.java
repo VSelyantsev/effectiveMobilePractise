@@ -1,12 +1,14 @@
-import model.TaskRequest;
-import service.Coordinator;
+package src;
+
+import src.model.TaskRequest;
+import src.service.Coordinator;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
-import static util.FileUtils.searchFiles;
+import static src.util.FileUtils.searchFiles;
 
 public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
