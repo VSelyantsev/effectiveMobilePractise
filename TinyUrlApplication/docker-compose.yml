@@ -1,8 +1,19 @@
 version: '3.8'
 
 services:
-  db:
-    container_name: "postgres_db_app123"
+  app_tiny_url:
+    container_name: "app_tiny_url"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    depends_on:
+      - db_tiny_url
+
+
+  db_tiny_url:
+    container_name: "db_tiny_url"
     image: postgres:15
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -10,7 +21,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/db:/docker-entrypoint-initdb.d/create_db.sql
+      - ./infrastructure/db/create-db.sql:/docker-entrypoint-initdb.d/create-db.sql
     ports:
       - "5433:5432"
 

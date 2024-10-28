@@ -5,13 +5,6 @@ plugins {
     id 'jacoco'
 }
 
-//apply plugin: 'application'
-//mainClassName = 'ru.itis.kpfu.selyantsev.TinyUrlApplication'
-//
-//springBoot {
-//    mainClassName = 'ru.itis.kpfu.selyantsev.TinyUrlApplication'
-//}
-
 group = 'ru.itis.kpfu.selyantsev'
 version = '0.0.1-SNAPSHOT'
 
@@ -57,6 +50,17 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+bootJar {
+    enabled = true
+    manifest {
+        attributes 'Start-class': 'ru.itis.kpfu.selyantsev.TinyUrlApplication'
+    }
+    mainClass = 'ru.itis.kpfu.selyantsev.TinyUrlApplication'
+}
+tasks.jar {
+    enabled = true
 }
 
 jacoco {
