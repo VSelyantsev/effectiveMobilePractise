@@ -1,3 +1,5 @@
+package src;
+
 public class RingBuffer {
     private final int[] buffer;
     private int head;
