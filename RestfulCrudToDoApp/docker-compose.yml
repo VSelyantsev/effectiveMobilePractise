@@ -5,10 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-#    environment:
-#      - DB_URL=jdbc:postgresql://0.0.0.0:5433/crud_app
-#      - DB_USERNAME=postgres
-#      - DB_PASSWORD=rootroot
     ports:
       - 8080:8080
     depends_on:
@@ -23,7 +19,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/db:/docker-entrypoint-initdb.d/create_db.sql
+      - ./infrastructure/db/create-db.sql:/docker-entrypoint-initdb.d/create-db.sql
     ports:
       - "5433:5432"
 
