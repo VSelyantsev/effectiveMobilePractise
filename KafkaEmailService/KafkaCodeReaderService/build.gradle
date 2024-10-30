@@ -25,6 +25,17 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+bootJar {
+    enabled = true
+    manifest {
+        attributes 'Start-class': 'ru.itis.kpfu.selyantsev.KafkaCodeReaderServiceApplication'
+    }
+    mainClass = 'ru.itis.kpfu.selyantsev.KafkaCodeReaderServiceApplication'
+}
+tasks.jar {
+    enabled = true
+}
+
 tasks.named('test') {
     useJUnitPlatform()
 }

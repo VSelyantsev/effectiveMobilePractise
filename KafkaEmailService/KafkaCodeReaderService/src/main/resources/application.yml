@@ -4,7 +4,7 @@ spring:
   kafka:
     topic:
       confirmation: confirmation-codes
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: PLAINTEXT://kafka:9092
 
 server:
   port: 8081

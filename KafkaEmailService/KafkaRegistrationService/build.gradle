@@ -54,6 +54,17 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 }
 
+bootJar {
+    enabled = true
+    manifest {
+        attributes 'Start-class': 'ru.itis.kpfu.selyantsev.KafkaRegistrationServiceApplication'
+    }
+    mainClass = 'ru.itis.kpfu.selyantsev.KafkaRegistrationServiceApplication'
+}
+tasks.jar {
+    enabled = true
+}
+
 jacoco {
     toolVersion = "0.8.9"
     reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
