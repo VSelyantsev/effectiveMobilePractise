@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: RestfulCrudToDoApp
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  liquibase:
+    change-log: db/changelog/changelog-master.yml
+
+    url: ${DB_URL:jdbc:postgresql://db_jpa_rewrite:5432/crud_app_jpa_rewrite}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:rootroot}
+    driver-class-name: org.postgresql.Driver
+

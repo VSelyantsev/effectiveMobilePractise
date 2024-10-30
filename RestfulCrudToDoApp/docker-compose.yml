@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app_jpa_rewrite:
+    container_name: "app_jpa_rewrite"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    depends_on:
+      - db_jpa_rewrite
+
+  db_jpa_rewrite:
+    container_name: "postgres_for_crud_app_jpa_rewrite"
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/db/create-db.sql:/docker-entrypoint-initdb.d/create-db.sql
+    ports:
+      - "5433:5432"
+
+
+volumes:
+  postgres_data:
