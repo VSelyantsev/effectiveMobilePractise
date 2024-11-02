@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-tiny-url-service
+spec:
+  selector:
+    app: db-tiny-url
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

@@ -2,10 +2,10 @@ FROM gradle:7.6.0-jdk17 as build
 WORKDIR /app
 
 COPY build.gradle settings.gradle* ./
-RUN gradle bootJar -x test --no-daemon
+RUN gradle clean bootJar --no-daemon
 
 COPY . .
-RUN gradle bootJar -x test --no-daemon
+RUN gradle build -x test --no-daemon
 
 FROM openjdk:17-jdk-slim
 WORKDIR /app

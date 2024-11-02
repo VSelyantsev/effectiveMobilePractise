@@ -10,7 +10,7 @@ spring:
       ddl-auto: create
     show-sql: true
   datasource:
-    url: ${DB_URL:jdbc:postgresql://db_tiny_url:5432/tiny_url}
+    url: ${DB_URL:jdbc:postgresql://db-tiny-url-service:5432/tiny_url}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:rootroot}
     driver-class-name: org.postgresql.Driver

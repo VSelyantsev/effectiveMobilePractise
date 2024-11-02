@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-tiny-url-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-tiny-url
+  template:
+    metadata:
+      labels:
+        app: app-tiny-url
+    spec:
+      containers:
+        - name: app-tiny-url-container
+          image: app_tiny_url_image
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_DB
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_PASSWORD
