@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: KafkaRegistrationService
+
+  kafka:
+    topic:
+      confirmation: confirmation-codes
+    bootstrap-servers: PLAINTEXT://kafka:9092
+
+  liquibase:
+    change-log: db/changelog/changelog-master.yml
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://local_db:5432/auth_service_db_local}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:rootroot}
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+jwt:
+  secret:
+    access: qBTmv4oXFFR2GwjexDJ4t6fsIUIUhhXqlktXjXdkcyygs8nPVEwMfo29VDRRepYDVV5IkIxBMzr7OEHXEHd37w==
